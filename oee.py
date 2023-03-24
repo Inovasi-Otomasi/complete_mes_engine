@@ -97,7 +97,7 @@ def oee():
 
 def cronjob():
     line=db_fetch('select * from manufacturing_line')
-    prev_log=db_fetchone('SELECT * FROM log_oee ORDER BY timestamp DESC')
+    # prev_log=db_fetchone('SELECT * FROM log_oee ORDER BY timestamp DESC')
     for row in line:
         line_name=row['line_name']
         sku_code=row['sku_code']
@@ -113,13 +113,16 @@ def cronjob():
         acc_standby_time=row['acc_standby_time']
         acc_setup_time=row['acc_setup_time']
         location=row['location']
-        prev_status=prev_log['status']
+        prev_log = db_fetchone(
+            'select * from log_oee where line_name="%s" order by timestamp desc limit 1' % line_name)
+        prev_status = prev_log['status'] if prev_log else "STOP"
+        # prev_status=prev_log['status']
         sql='insert into log_oee (line_name,sku_code,item_counter,NG_count,status,performance,availability,quality,run_time,down_time,remark,acc_setup_time,acc_standby_time,location,prev_status) values("%s","%s",%s,%s,"%s",%s,%s,%s,%s,%s,"%s",%s,%s,"%s","%s")'%(line_name,sku_code,item_counter,ng_count,status,performance,availability,quality,run_time,down_time,remark,acc_setup_time,acc_standby_time,location,prev_status)
-        db_query(sql)
+        print(db_query(sql))
         
 
 try:
-    db_connect('dbdemo.colinn.id','oee4','admin','adminiot',3307)
+    db_connect('192.168.18.70','oee4','admin','adminiot')
     # db_connect('localhost','oee4','root','iotdb123')
     previousTime = 0
     eventInterval = 1000
