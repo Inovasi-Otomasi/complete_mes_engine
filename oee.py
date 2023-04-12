@@ -123,7 +123,7 @@ def cronjob():
 
 try:
     db_connect('192.168.18.70','oee4','admin','adminiot')
-    # db_connect('localhost','oee4','root','iotdb123')
+    # db_connect('localhost','oee4','root','iotdb123',3306)
     previousTime = 0
     eventInterval = 1000
     schedule.every().minute.at(":00").do(cronjob)
