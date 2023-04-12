@@ -33,6 +33,13 @@ def oee():
     line=db_fetch('select * from manufacturing_line')
     for row in line:
         line_id=row['id']
+        line_name=row['line_name']
+        sku_code=row['sku_code']
+        remark=row['remark']
+        location=row['location']
+        # performance=row['performance']
+        # availability=row['availability']
+        # quality=row['quality']
         status=row['status']
         temp_time=row['temp_time']
         setup_time=row['setup_time']
@@ -67,8 +74,15 @@ def oee():
                         db_query(sql)
                     elif temp_time>=cycle_time:
                         down_time+=1
-                        sql='update manufacturing_line set down_time=%s,status="BREAKDOWN",remark="" where id=%s'%(down_time,line_id)
-                        db_query(sql)
+                        # sql='update manufacturing_line set down_time=%s,status="BREAKDOWN",remark="" where id=%s'%(down_time,line_id)
+                        # db_query(sql)
+                        if (temp_time-cycle_time) < 600:
+                            sql='update manufacturing_line set down_time=%s,status="SMALL STOP",remark="" where id=%s'%(down_time,line_id)
+                            db_query(sql)
+                        elif (temp_time-cycle_time) >= 600:
+                            #tinggal ganti breakdown ke Down Time
+                            sql='update manufacturing_line set down_time=%s,status="DOWN TIME",remark="" where id=%s'%(down_time,line_id)
+                            db_query(sql)
                     temp_time+=1
                     sql='update manufacturing_line set temp_time=%s where id=%s'%(temp_time,line_id)
                     db_query(sql)
@@ -84,6 +98,14 @@ def oee():
         progress=round(((item_counter-ng_count)*100/target) if target!=0 else 0,2)
         sql='update manufacturing_line set performance=%s,availability=%s,quality=%s,progress=%s where id=%s'%(performance,availability,quality,progress,line_id)
         db_query(sql)
+        prev_log = db_fetchone(
+            'select * from log_oee where line_name="%s" order by timestamp desc limit 1' % line_name)
+        prev_status = prev_log['status'] if prev_log else "STOP"
+        if prev_status != status:
+            # insert
+            print('[MYSQL] Inserting log.')
+            sql='insert into log_oee (line_name,sku_code,item_counter,NG_count,status,performance,availability,quality,run_time,down_time,remark,acc_setup_time,acc_standby_time,location,prev_status) values("%s","%s",%s,%s,"%s",%s,%s,%s,%s,%s,"%s",%s,%s,"%s","%s")'%(line_name,sku_code,item_counter,ng_count,status,performance,availability,quality,run_time,down_time,remark,acc_setup_time,acc_standby_time,location,prev_status)
+            db_query(sql)
         # sql='update order_list set performance=%s,availability=%s,quality=%s,progress=%s,NG_count=%s,item_counter=%s where id=%s'%(performance,availability,quality,progress,ng_count,item_counter,order_id)
         # db_query(sql)
         # print("setup time : %s"%row['setup_time'])
@@ -118,24 +140,25 @@ def cronjob():
         prev_status = prev_log['status'] if prev_log else "STOP"
         # prev_status=prev_log['status']
         sql='insert into log_oee (line_name,sku_code,item_counter,NG_count,status,performance,availability,quality,run_time,down_time,remark,acc_setup_time,acc_standby_time,location,prev_status) values("%s","%s",%s,%s,"%s",%s,%s,%s,%s,%s,"%s",%s,%s,"%s","%s")'%(line_name,sku_code,item_counter,ng_count,status,performance,availability,quality,run_time,down_time,remark,acc_setup_time,acc_standby_time,location,prev_status)
-        print(db_query(sql))
+        db_query(sql)
         
 
 try:
-    db_connect('192.168.18.70','oee4','admin','adminiot')
+    db_connect('dbdemo.colinn.id','oee4','admin','adminiot',3307)
     # db_connect('localhost','oee4','root','iotdb123')
     previousTime = 0
     eventInterval = 1000
     schedule.every().minute.at(":00").do(cronjob)
+    schedule.every(1).seconds.do(oee)
     # cronjob()
     while 1:
         if db_status():
             try:
                 schedule.run_pending()
-                currentTime = millis()
-                if currentTime - previousTime >= eventInterval :
-                    oee()
-                    previousTime = currentTime
+                # currentTime = millis()
+                # if currentTime - previousTime >= eventInterval :
+                #     oee()
+                #     previousTime = currentTime
                 time.sleep(1/1000)
             except KeyboardInterrupt:
                 print('[PROGRAM] Closed')
