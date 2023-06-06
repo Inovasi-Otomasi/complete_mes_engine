@@ -34,6 +34,8 @@ def oee():
     for row in line:
         line_id=row['id']
         line_name=row['line_name']
+        order_id=row['order_id']
+        batch_id=row['batch_id']
         sku_code=row['sku_code']
         remark=row['remark']
         location=row['location']
@@ -93,7 +95,7 @@ def oee():
                 sql='update manufacturing_line set temp_time=%s,prev_item_counter=%s,standby_time=0,setup_time=0,status="RUNNING" where id=%s'%(temp_time,prev_item_counter,line_id)
                 db_query(sql)
         availability=round((run_time*100/(run_time+down_time)) if (run_time+down_time)!=0 else 0,2)
-        performance=round(((cycle_time*item_counter)*100/run_time) if run_time!=0 else 0,2)
+        performance=round(((cycle_time*item_counter)*100/(run_time+down_time)) if run_time!=0 else 0,2)
         quality=round(((item_counter-ng_count)*100/item_counter) if item_counter!=0 else 0,2)
         progress=round(((item_counter-ng_count)*100/target) if target!=0 else 0,2)
         sql='update manufacturing_line set performance=%s,availability=%s,quality=%s,progress=%s where id=%s'%(performance,availability,quality,progress,line_id)
@@ -104,7 +106,7 @@ def oee():
         if prev_status != status:
             # insert
             print('[MYSQL] Inserting log.')
-            sql='insert into log_oee (line_name,sku_code,item_counter,NG_count,status,performance,availability,quality,run_time,down_time,remark,acc_setup_time,acc_standby_time,location,prev_status) values("%s","%s",%s,%s,"%s",%s,%s,%s,%s,%s,"%s",%s,%s,"%s","%s")'%(line_name,sku_code,item_counter,ng_count,status,performance,availability,quality,run_time,down_time,remark,acc_setup_time,acc_standby_time,location,prev_status)
+            sql='insert into log_oee (order_id,batch_id,line_name,sku_code,item_counter,NG_count,status,performance,availability,quality,run_time,down_time,remark,acc_setup_time,acc_standby_time,location,prev_status) values(%s,"%s","%s","%s",%s,%s,"%s",%s,%s,%s,%s,%s,"%s",%s,%s,"%s","%s")'%(order_id,batch_id,line_name,sku_code,item_counter,ng_count,status,performance,availability,quality,run_time,down_time,remark,acc_setup_time,acc_standby_time,location,prev_status)
             db_query(sql)
         # sql='update order_list set performance=%s,availability=%s,quality=%s,progress=%s,NG_count=%s,item_counter=%s where id=%s'%(performance,availability,quality,progress,ng_count,item_counter,order_id)
         # db_query(sql)
