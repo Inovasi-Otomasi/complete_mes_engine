@@ -93,7 +93,7 @@ def oee():
                 sql='update manufacturing_line set temp_time=%s,prev_item_counter=%s,standby_time=0,setup_time=0,status="RUNNING" where id=%s'%(temp_time,prev_item_counter,line_id)
                 db_query(sql)
         availability=round((run_time*100/(run_time+down_time)) if (run_time+down_time)!=0 else 0,2)
-        performance=round(((cycle_time*item_counter)*100/run_time) if run_time!=0 else 0,2)
+        performance=round(((cycle_time*item_counter)*100/(run_time+down_time)) if run_time!=0 else 0,2)
         quality=round(((item_counter-ng_count)*100/item_counter) if item_counter!=0 else 0,2)
         progress=round(((item_counter-ng_count)*100/target) if target!=0 else 0,2)
         sql='update manufacturing_line set performance=%s,availability=%s,quality=%s,progress=%s where id=%s'%(performance,availability,quality,progress,line_id)
