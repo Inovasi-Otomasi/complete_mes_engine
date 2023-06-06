@@ -55,7 +55,7 @@ def oee():
         order_id=row['order_id']
         target=row['target']
         sku_code=row['sku_code']
-        if status!='STOP':
+        if status != 'STOP' and order_id != 0 and sku_code != 'None' :
             if standby_time>0:
                 standby_time-=1
                 acc_standby_time+=1
@@ -92,6 +92,9 @@ def oee():
                 prev_item_counter=item_counter
                 sql='update manufacturing_line set temp_time=%s,prev_item_counter=%s,standby_time=0,setup_time=0,status="RUNNING" where id=%s'%(temp_time,prev_item_counter,line_id)
                 db_query(sql)
+        else:
+            sql='update manufacturing_line set status="STOP" where id=%s'%line_id
+            db_query(sql)
         availability=round((run_time*100/(run_time+down_time)) if (run_time+down_time)!=0 else 0,2)
         performance=round(((cycle_time*item_counter)*100/(run_time+down_time)) if run_time!=0 else 0,2)
         quality=round(((item_counter-ng_count)*100/item_counter) if item_counter!=0 else 0,2)
