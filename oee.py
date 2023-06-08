@@ -161,6 +161,37 @@ def oee():
                     print('updating delta downtime')
                 # selisih downtime
                 # update selisih downtime to log
+            elif prev_status == 'SMALL STOP' and status == 'STOP':
+                # get latest small stop from this line
+                small_stop_log = db_fetchone(
+                    'select * from log_oee where line_name="%s" and status="SMALL STOP" and prev_status="RUNNING" order by timestamp desc limit 1' % line_name)
+                delta_downtime = down_time - small_stop_log['down_time']
+                print('calculating delta downtime')
+                if small_stop_log:
+                    sql = 'update log_oee set delta_down_time=%s where id=%s' % (delta_downtime, small_stop_log['id'])
+                    db_query(sql)
+                    print('updating delta downtime')
+                    sql = 'update manufacturing_line set down_time=0 where id=%s' % line_id
+                    db_query(sql)
+                # selisih downtime
+                # update selisih downtime to log
+            elif prev_status == 'DOWN TIME' and status == 'STOP':
+                # get latest small stop from this line
+                small_stop_log = db_fetchone(
+                    'select * from log_oee where line_name="%s" and status="DOWN TIME" and prev_status="SMALL STOP" order by timestamp desc limit 1' % line_name)
+                delta_downtime = down_time - small_stop_log['down_time']
+                print('calculating delta downtime')
+                if small_stop_log:
+                    sql = 'update log_oee set delta_down_time=%s where id=%s' % (delta_downtime, small_stop_log['id'])
+                    db_query(sql)
+                    print('updating delta downtime')
+                    sql = 'update manufacturing_line set down_time=0 where id=%s' % line_id
+                    db_query(sql)
+                # selisih downtime
+                # update selisih downtime to log
+            elif (prev_status == 'RUNNING' or prev_status == 'SETUP') and status == 'STOP':
+                sql = 'update manufacturing_line set down_time=0 where id=%s' % line_id
+                db_query(sql)
 
         # sql='update order_list set performance=%s,availability=%s,quality=%s,progress=%s,NG_count=%s,item_counter=%s where id=%s'%(performance,availability,quality,progress,ng_count,item_counter,order_id)
         # db_query(sql)
