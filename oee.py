@@ -128,7 +128,7 @@ def oee():
             if prev_status == 'SMALL STOP' and status == 'RUNNING':
                 # get latest small stop from this line
                 small_stop_log = db_fetchone(
-                    'select * from log_oee where line_name="%s" and status="SMALL STOP" and prev_status="RUNNING" order by timestamp desc limit 1' % line_name)
+                    'select * from log_oee where line_name="%s" and status="SMALL STOP" and (prev_status="RUNNING" or prev_status="STOP" or prev_status="SETUP" or prev_status="STANDBY") order by timestamp desc limit 1' % line_name)
                 delta_downtime = down_time - small_stop_log['down_time']
                 print('calculating delta downtime')
                 if small_stop_log:
@@ -140,7 +140,7 @@ def oee():
             elif prev_status == 'DOWN TIME' and status == 'RUNNING':
                 # get latest small stop from this line
                 small_stop_log = db_fetchone(
-                    'select * from log_oee where line_name="%s" and status="DOWN TIME" and prev_status="SMALL STOP" order by timestamp desc limit 1' % line_name)
+                    'select * from log_oee where line_name="%s" and status="DOWN TIME" and (prev_status="SMALL STOP" or prev_status="STOP" or prev_status="RUNNING" or prev_status="SETUP" or prev_status="STANDBY") order by timestamp desc limit 1' % line_name)
                 delta_downtime = down_time - small_stop_log['down_time']
                 print('calculating delta downtime')
                 if small_stop_log:
@@ -152,7 +152,7 @@ def oee():
             elif prev_status == 'SMALL STOP' and status == 'DOWN TIME':
                 # get latest small stop from this line
                 small_stop_log = db_fetchone(
-                    'select * from log_oee where line_name="%s" and status="SMALL STOP" and prev_status="RUNNING" order by timestamp desc limit 1' % line_name)
+                    'select * from log_oee where line_name="%s" and status="SMALL STOP" and (prev_status="RUNNING" or prev_status="STOP" or prev_status="SETUP" or prev_status="STANDBY") order by timestamp desc limit 1' % line_name)
                 delta_downtime = down_time - small_stop_log['down_time']
                 print('calculating delta downtime')
                 if small_stop_log:
@@ -164,7 +164,7 @@ def oee():
             elif prev_status == 'SMALL STOP' and status == 'STOP':
                 # get latest small stop from this line
                 small_stop_log = db_fetchone(
-                    'select * from log_oee where line_name="%s" and status="SMALL STOP" and prev_status="RUNNING" order by timestamp desc limit 1' % line_name)
+                    'select * from log_oee where line_name="%s" and status="SMALL STOP" and (prev_status="RUNNING" or prev_status="STOP" or prev_status="SETUP" or prev_status="STANDBY") order by timestamp desc limit 1' % line_name)
                 delta_downtime = down_time - small_stop_log['down_time']
                 print('calculating delta downtime')
                 if small_stop_log:
@@ -178,7 +178,7 @@ def oee():
             elif prev_status == 'DOWN TIME' and status == 'STOP':
                 # get latest small stop from this line
                 small_stop_log = db_fetchone(
-                    'select * from log_oee where line_name="%s" and status="DOWN TIME" and prev_status="SMALL STOP" order by timestamp desc limit 1' % line_name)
+                    'select * from log_oee where line_name="%s" and status="DOWN TIME" and (prev_status="SMALL STOP" or prev_status="STOP" or prev_status="RUNNING" or prev_status="SETUP" or prev_status="STANDBY") order by timestamp desc limit 1' % line_name)
                 delta_downtime = down_time - small_stop_log['down_time']
                 print('calculating delta downtime')
                 if small_stop_log:
@@ -189,7 +189,31 @@ def oee():
                     db_query(sql)
                 # selisih downtime
                 # update selisih downtime to log
-            elif (prev_status == 'RUNNING' or prev_status == 'SETUP') and status == 'STOP':
+            elif prev_status == 'SMALL STOP' and status == 'STANDBY':
+                # get latest small stop from this line
+                small_stop_log = db_fetchone(
+                    'select * from log_oee where line_name="%s" and status="SMALL STOP" and (prev_status="RUNNING" or prev_status="STOP" or prev_status="SETUP" or prev_status="STANDBY") order by timestamp desc limit 1' % line_name)
+                delta_downtime = down_time - small_stop_log['down_time']
+                print('calculating delta downtime')
+                if small_stop_log:
+                    sql = 'update log_oee set delta_down_time=%s where id=%s' % (delta_downtime, small_stop_log['id'])
+                    db_query(sql)
+                    print('updating delta downtime')
+                # selisih downtime
+                # update selisih downtime to log
+            elif prev_status == 'DOWN TIME' and status == 'STANDBY':
+                # get latest small stop from this line
+                small_stop_log = db_fetchone(
+                    'select * from log_oee where line_name="%s" and status="DOWN TIME" and (prev_status="SMALL STOP" or prev_status="STOP" or prev_status="RUNNING" or prev_status="SETUP" or prev_status="STANDBY") order by timestamp desc limit 1' % line_name)
+                delta_downtime = down_time - small_stop_log['down_time']
+                print('calculating delta downtime')
+                if small_stop_log:
+                    sql = 'update log_oee set delta_down_time=%s where id=%s' % (delta_downtime, small_stop_log['id'])
+                    db_query(sql)
+                    print('updating delta downtime')
+                # selisih downtime
+                # update selisih downtime to log
+            elif (prev_status == 'RUNNING' or prev_status == 'SETUP' or prev_status == 'STANDBY') and status == 'STOP':
                 sql = 'update manufacturing_line set down_time=0 where id=%s' % line_id
                 db_query(sql)
 
