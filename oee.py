@@ -53,10 +53,15 @@ def oee():
         down_time = row['down_time']
         standby_time = row['standby_time']
         ng_count = row['NG_count']
+        prev_ng_count = row['prev_NG_count']
+        acc_ng_count = row['acc_NG_count']
         item_counter = row['item_counter']
         prev_item_counter = row['prev_item_counter']
         acc_standby_time = row['acc_standby_time']
         acc_setup_time = row['acc_setup_time']
+        acc_run_time = row['acc_run_time']
+        acc_item_counter = row['acc_item_counter']
+        acc_cycle_time = row['acc_cycle_time']
         small_stop_time = row['small_stop_time']
         # order_id=row['order_id']
         target = row['target']
@@ -78,8 +83,9 @@ def oee():
                 else:
                     if temp_time < cycle_time:
                         run_time += 1
-                        sql = 'update manufacturing_line set run_time=%s,status="RUNNING",remark="",location="" where id=%s' % (
-                            run_time, line_id)
+                        acc_run_time += 1
+                        sql = 'update manufacturing_line set run_time=%s,acc_run_time=%s,status="RUNNING",remark="",location="" where id=%s' % (
+                            run_time, acc_run_time, line_id)
                         db_query(sql)
                     elif temp_time >= cycle_time:
                         down_time += 1
@@ -100,19 +106,34 @@ def oee():
             if item_counter != prev_item_counter:
                 temp_time = 0
                 delta_item_counter = item_counter - prev_item_counter
+                if item_counter >= prev_item_counter:
+                    acc_item_counter = delta_item_counter + acc_item_counter
+                    acc_cycle_time = (cycle_time * delta_item_counter) + acc_cycle_time
                 prev_item_counter = item_counter
-                sql = 'update manufacturing_line set temp_time=%s,prev_item_counter=%s,standby_time=0,setup_time=0,status="RUNNING" where id=%s' % (
-                    temp_time, prev_item_counter, line_id)
+                sql = 'update manufacturing_line set temp_time=%s,prev_item_counter=%s,acc_item_counter=%s,acc_cycle_time=%s,standby_time=0,setup_time=0,status="RUNNING" where id=%s' % (
+                    temp_time, prev_item_counter, acc_item_counter, acc_cycle_time, line_id)
+                db_query(sql)
+            if ng_count != prev_ng_count:
+                delta_ng_count = ng_count - prev_ng_count
+                if ng_count >= prev_ng_count:
+                    acc_ng_count = delta_ng_count + acc_ng_count
+                prev_ng_count = ng_count
+                sql = 'update manufacturing_line set prev_NG_count=%s,acc_NG_count=%s where id=%s' % (
+                    prev_ng_count, acc_ng_count, line_id)
                 db_query(sql)
         else:
             sql = 'update manufacturing_line set status="STOP" where id=%s' % line_id
             db_query(sql)
         availability = round((run_time * 100 / (run_time + down_time)) if (run_time + down_time) != 0 else 0, 2)
+        availability_24h = round((acc_run_time * 100 / 86400), 2)
         performance = round(((cycle_time * item_counter) * 100 / (run_time + down_time)) if run_time != 0 else 0, 2)
-        quality = round(((item_counter - ng_count) * 100 / item_counter) if item_counter != 0 else 0, 2)
-        progress = round(((item_counter - ng_count) * 100 / target) if target != 0 else 0, 2)
-        sql = 'update manufacturing_line set performance=%s,availability=%s,quality=%s,progress=%s where id=%s' % (
-            performance, availability, quality, progress, line_id)
+        performance_24h = round((acc_cycle_time * 100 / 86400) if run_time != 0 else 0, 2)
+        quality = round(((item_counter) * 100 / (item_counter + ng_count)) if item_counter != 0 else 0, 2)
+        quality_24h = round(
+            ((acc_item_counter) * 100 / (acc_item_counter + acc_ng_count)) if acc_item_counter != 0 else 0, 2)
+        progress = round(((item_counter) * 100 / target) if target != 0 else 0, 2)
+        sql = 'update manufacturing_line set performance=%s,performance_24h=%s,availability=%s,availability_24h=%s,quality=%s,quality_24h=%s,progress=%s where id=%s' % (
+            performance, performance_24h, availability, availability_24h, quality, quality_24h, progress, line_id)
         db_query(sql)
         prev_log = db_fetchone(
             'select * from log_oee where line_name="%s" order by timestamp desc limit 1' % line_name)
