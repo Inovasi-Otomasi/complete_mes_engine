@@ -106,6 +106,8 @@ def oee():
                 db_query(sql)
         else:
             sql = 'update manufacturing_line set status="STOP" where id=%s' % line_id
+            # sql = 'update manufacturing_line set status="STOP",run_time=0 where id=%s' % line_id
+            # harus ditambah run_time=0
             db_query(sql)
         availability = round((run_time * 100 / (run_time + down_time)) if (run_time + down_time) != 0 else 0, 2)
         performance = round(((cycle_time * item_counter) * 100 / (run_time + down_time)) if run_time != 0 else 0, 2)
