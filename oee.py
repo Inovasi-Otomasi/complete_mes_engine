@@ -67,7 +67,7 @@ def oee():
         # order_id=row['order_id']
         target = row['target']
         sku_code = row['sku_code']
-        if status != 'STOP' and order_id != 0 and sku_code != 'None':
+        if status != 'STOP' and status != 'BREAKDOWN' and order_id != 0 and sku_code != 'None':
             if standby_time > 0:
                 standby_time -= 1
                 acc_standby_time += 1
@@ -123,6 +123,12 @@ def oee():
                 sql = 'update manufacturing_line set prev_NG_count=%s,acc_NG_count=%s where id=%s' % (
                     prev_ng_count, acc_ng_count, line_id)
                 db_query(sql)
+        elif status == 'BREAKDOWN':
+            down_time += 1
+            acc_down_time += 1
+            sql = 'update manufacturing_line set down_time=%s,acc_down_time=%s,status="BREAKDOWN",remark="" where id=%s' % (
+                down_time, acc_down_time, line_id)
+            db_query(sql)
         else:
             sql = 'update manufacturing_line set status="STOP" where id=%s' % line_id
             db_query(sql)
@@ -237,6 +243,20 @@ def oee():
                     sql = 'update log_oee set delta_down_time=%s where id=%s' % (delta_downtime, small_stop_log['id'])
                     db_query(sql)
                     print('updating delta downtime')
+                # selisih downtime
+                # update selisih downtime to log
+            elif prev_status == 'BREAKDOWN' and status == 'STOP':
+                # get latest small stop from this line
+                small_stop_log = db_fetchone(
+                    'select * from log_oee where line_name="%s" and status="BREAKDOWN" and prev_status="STOP" order by timestamp desc limit 1' % line_name)
+                delta_downtime = down_time - small_stop_log['down_time']
+                print('calculating delta downtime')
+                if small_stop_log:
+                    sql = 'update log_oee set delta_down_time=%s where id=%s' % (delta_downtime, small_stop_log['id'])
+                    db_query(sql)
+                    print('updating delta downtime')
+                    sql = 'update manufacturing_line set down_time=0 where id=%s' % line_id
+                    db_query(sql)
                 # selisih downtime
                 # update selisih downtime to log
             elif (prev_status == 'RUNNING' or prev_status == 'SETUP' or prev_status == 'STANDBY') and status == 'STOP':
