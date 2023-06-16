@@ -60,6 +60,7 @@ def oee():
         acc_standby_time = row['acc_standby_time']
         acc_setup_time = row['acc_setup_time']
         acc_run_time = row['acc_run_time']
+        acc_down_time = row['acc_down_time']
         acc_item_counter = row['acc_item_counter']
         acc_cycle_time = row['acc_cycle_time']
         small_stop_time = row['small_stop_time']
@@ -89,16 +90,17 @@ def oee():
                         db_query(sql)
                     elif temp_time >= cycle_time:
                         down_time += 1
+                        acc_down_time += 1
                         # sql='update manufacturing_line set down_time=%s,status="BREAKDOWN",remark="" where id=%s'%(down_time,line_id)
                         # db_query(sql)
                         if (temp_time - cycle_time) < small_stop_time:
-                            sql = 'update manufacturing_line set down_time=%s,status="SMALL STOP",remark="" where id=%s' % (
-                                down_time, line_id)
+                            sql = 'update manufacturing_line set down_time=%s,acc_down_time=%s,status="SMALL STOP",remark="" where id=%s' % (
+                                down_time, acc_down_time, line_id)
                             db_query(sql)
                         elif (temp_time - cycle_time) >= small_stop_time:
                             # tinggal ganti breakdown ke Down Time
-                            sql = 'update manufacturing_line set down_time=%s,status="DOWN TIME",remark="" where id=%s' % (
-                                down_time, line_id)
+                            sql = 'update manufacturing_line set down_time=%s,acc_down_time=%s,status="DOWN TIME",remark="" where id=%s' % (
+                                down_time, acc_down_time, line_id)
                             db_query(sql)
                     temp_time += 1
                     sql = 'update manufacturing_line set temp_time=%s where id=%s' % (temp_time, line_id)
@@ -125,12 +127,14 @@ def oee():
             sql = 'update manufacturing_line set status="STOP" where id=%s' % line_id
             db_query(sql)
         availability = round((run_time * 100 / (run_time + down_time)) if (run_time + down_time) != 0 else 0, 2)
-        availability_24h = round((acc_run_time * 100 / 86400), 2)
+        # availability_24h = round((acc_run_time * 100 / 86400), 2)
+        availability_24h = round(((86400 - acc_down_time) * 100 / 86400), 2)
+        # need acc_down_time
         performance = round(((cycle_time * item_counter) * 100 / (run_time + down_time)) if run_time != 0 else 0, 2)
         performance_24h = round((acc_cycle_time * 100 / 86400) if run_time != 0 else 0, 2)
-        quality = round(((item_counter) * 100 / (item_counter + ng_count)) if item_counter != 0 else 0, 2)
+        quality = round(((item_counter - ng_count) * 100 / item_counter) if item_counter != 0 else 0, 2)
         quality_24h = round(
-            ((acc_item_counter) * 100 / (acc_item_counter + acc_ng_count)) if acc_item_counter != 0 else 0, 2)
+            ((acc_item_counter - acc_ng_count) * 100 / acc_item_counter) if acc_item_counter != 0 else 0, 2)
         progress = round(((item_counter) * 100 / target) if target != 0 else 0, 2)
         sql = 'update manufacturing_line set performance=%s,performance_24h=%s,availability=%s,availability_24h=%s,quality=%s,quality_24h=%s,progress=%s where id=%s' % (
             performance, performance_24h, availability, availability_24h, quality, quality_24h, progress, line_id)
@@ -141,9 +145,10 @@ def oee():
         if prev_status != status:
             # insert
             print('[MYSQL] Inserting log.')
-            sql = 'insert into log_oee (order_id,batch_id,lot_number,line_name,sku_code,item_counter,NG_count,status,performance,availability,quality,run_time,down_time,remark,acc_setup_time,acc_standby_time,location,prev_status) values(%s,"%s","%s","%s","%s",%s,%s,"%s",%s,%s,%s,%s,%s,"%s",%s,%s,"%s","%s")' % (
+            sql = 'insert into log_oee (order_id,batch_id,lot_number,line_name,sku_code,item_counter,NG_count,status,performance,availability,quality,performance_24h,availability_24h,quality_24h,run_time,down_time,remark,acc_setup_time,acc_standby_time,location,prev_status) values(%s,"%s","%s","%s","%s",%s,%s,"%s",%s,%s,%s,%s,%s,%s,%s,%s,"%s",%s,%s,"%s","%s")' % (
                 order_id, batch_id, lot_number, line_name, sku_code, item_counter, ng_count, status, performance,
-                availability, quality, run_time, down_time, remark, acc_setup_time, acc_standby_time, location,
+                availability, quality, performance_24h, availability_24h, quality_24h, run_time, down_time, remark,
+                acc_setup_time, acc_standby_time, location,
                 prev_status)
             db_query(sql)
             if prev_status == 'SMALL STOP' and status == 'RUNNING':
@@ -267,6 +272,9 @@ def cronjob():
         performance = row['performance']
         availability = row['availability']
         quality = row['quality']
+        performance_24h = row['performance_24h']
+        availability_24h = row['availability_24h']
+        quality_24h = row['quality_24h']
         remark = row['remark']
         acc_standby_time = row['acc_standby_time']
         acc_setup_time = row['acc_setup_time']
@@ -275,11 +283,16 @@ def cronjob():
             'select * from log_oee where line_name="%s" order by timestamp desc limit 1' % line_name)
         prev_status = prev_log['status'] if prev_log else "STOP"
         # prev_status=prev_log['status']
-        sql = 'insert into log_oee (order_id,batch_id,lot_number,line_name,sku_code,item_counter,NG_count,status,performance,availability,quality,run_time,down_time,remark,acc_setup_time,acc_standby_time,location,prev_status) values(%s,"%s","%s","%s","%s",%s,%s,"%s",%s,%s,%s,%s,%s,"%s",%s,%s,"%s","%s")' % (
+        sql = 'insert into log_oee (order_id,batch_id,lot_number,line_name,sku_code,item_counter,NG_count,status,performance,availability,quality,performance_24h, availability_24h, quality_24h,run_time,down_time,remark,acc_setup_time,acc_standby_time,location,prev_status) values(%s,"%s","%s","%s","%s",%s,%s,"%s",%s,%s,%s,%s,%s,%s,%s,%s,"%s",%s,%s,"%s","%s")' % (
             order_id, batch_id, lot_number, line_name, sku_code, item_counter, ng_count, status, performance,
-            availability,
-            quality, run_time, down_time, remark, acc_setup_time, acc_standby_time, location, prev_status)
+            availability, quality, performance_24h, availability_24h, quality_24h, run_time, down_time, remark,
+            acc_setup_time, acc_standby_time, location, prev_status)
         db_query(sql)
+
+
+def reset_oee_24h():
+    sql = 'update manufacturing_line set acc_down_time=0,acc_run_time=0,acc_item_counter=0,acc_cycle_time=0,acc_NG_count=0,performance_24h=0,availability_24h=0,quality_24h=0'
+    db_query(sql)
 
 
 try:
@@ -288,6 +301,7 @@ try:
     db_connect('localhost', 'oee4', 'admin', 'adminiot')
     previousTime = 0
     eventInterval = 1000
+    schedule.every().day.at("00:00").do(reset_oee_24h)
     schedule.every().minute.at(":00").do(cronjob)
     schedule.every(1).seconds.do(oee)
     # cronjob()
