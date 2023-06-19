@@ -260,7 +260,7 @@ def oee():
                 # selisih downtime
                 # update selisih downtime to log
             elif (prev_status == 'RUNNING' or prev_status == 'SETUP' or prev_status == 'STANDBY') and status == 'STOP':
-                sql = 'update manufacturing_line set down_time=0 where id=%s' % line_id
+                sql = 'update manufacturing_line set down_time=0,run_time=0 where id=%s' % line_id
                 db_query(sql)
 
         # sql='update order_list set performance=%s,availability=%s,quality=%s,progress=%s,NG_count=%s,item_counter=%s where id=%s'%(performance,availability,quality,progress,ng_count,item_counter,order_id)
