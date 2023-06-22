@@ -127,11 +127,11 @@ def line_calculation(id):
     if prev_status != status:
         # insert
         print('[MYSQL] Inserting log.')
-        sql = 'insert into log_oee (order_id,batch_id,lot_number,line_name,sku_code,item_counter,NG_count,status,performance,availability,quality,performance_24h,availability_24h,quality_24h,run_time,down_time,remark,acc_setup_time,acc_standby_time,location,prev_status) values(%s,"%s","%s","%s","%s",%s,%s,"%s",%s,%s,%s,%s,%s,%s,%s,%s,"%s",%s,%s,"%s","%s")' % (
+        sql = 'insert into log_oee (order_id,batch_id,lot_number,line_name,sku_code,item_counter,NG_count,status,performance,availability,quality,performance_24h,availability_24h,quality_24h,run_time,down_time,remark,acc_setup_time,acc_standby_time,location,prev_status,acc_item_counter,acc_NG_count,acc_run_time,acc_down_time) values(%s,"%s","%s","%s","%s",%s,%s,"%s",%s,%s,%s,%s,%s,%s,%s,%s,"%s",%s,%s,"%s","%s",%s,%s,%s,%s)' % (
             order_id, batch_id, lot_number, line_name, sku_code, item_counter, ng_count, status, performance,
             availability, quality, performance_24h, availability_24h, quality_24h, run_time, down_time, remark,
             acc_setup_time, acc_standby_time, location,
-            prev_status)
+            prev_status, acc_item_counter, acc_ng_count, acc_run_time, acc_down_time)
         db_query(sql)
         if prev_status == 'SMALL STOP' and status == 'RUNNING':
             # get latest small stop from this line
@@ -289,15 +289,20 @@ def cronjob():
         remark = row['remark']
         acc_standby_time = row['acc_standby_time']
         acc_setup_time = row['acc_setup_time']
+        acc_item_counter = row['acc_item_counter']
+        acc_ng_count = row['acc_NG_count']
+        acc_run_time = row['acc_run_time']
+        acc_down_time = row['acc_down_time']
         location = row['location']
         prev_log = db_fetchone(
             'select * from log_oee where line_name="%s" order by timestamp desc limit 1' % line_name)
         prev_status = prev_log['status'] if prev_log else "STOP"
         # prev_status=prev_log['status']
-        sql = 'insert into log_oee (order_id,batch_id,lot_number,line_name,sku_code,item_counter,NG_count,status,performance,availability,quality,performance_24h, availability_24h, quality_24h,run_time,down_time,remark,acc_setup_time,acc_standby_time,location,prev_status) values(%s,"%s","%s","%s","%s",%s,%s,"%s",%s,%s,%s,%s,%s,%s,%s,%s,"%s",%s,%s,"%s","%s")' % (
+        sql = 'insert into log_oee (order_id,batch_id,lot_number,line_name,sku_code,item_counter,NG_count,status,performance,availability,quality,performance_24h, availability_24h, quality_24h,run_time,down_time,remark,acc_setup_time,acc_standby_time,location,prev_status,acc_item_counter,acc_NG_count,acc_run_time,acc_down_time) values(%s,"%s","%s","%s","%s",%s,%s,"%s",%s,%s,%s,%s,%s,%s,%s,%s,"%s",%s,%s,"%s","%s",%s,%s,%s,%s)' % (
             order_id, batch_id, lot_number, line_name, sku_code, item_counter, ng_count, status, performance,
             availability, quality, performance_24h, availability_24h, quality_24h, run_time, down_time, remark,
-            acc_setup_time, acc_standby_time, location, prev_status)
+            acc_setup_time, acc_standby_time, location, prev_status, acc_item_counter, acc_ng_count, acc_run_time,
+            acc_down_time)
         db_query(sql)
 
 
