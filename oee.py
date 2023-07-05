@@ -47,37 +47,68 @@ def line_calculation(id):
         if standby_time > 0:
             standby_time -= 1
             acc_standby_time += 1
-            sql = 'update manufacturing_line set standby_time=%s,acc_standby_time=%s,status="STANDBY" where id=%s' % (
-                standby_time, acc_standby_time, line_id)
-            db_query(sql)
+            # if not standby_time ganti ke standby
+            if status != 'STANDBY':
+                sql = 'update manufacturing_line set standby_time=%s,acc_standby_time=%s,status="STANDBY" where id=%s' % (
+                    standby_time, acc_standby_time, line_id)
+                db_query(sql)
+                status = 'STANDBY'
+            else:
+                sql = 'update manufacturing_line set standby_time=%s,acc_standby_time=%s where id=%s' % (
+                    standby_time, acc_standby_time, line_id)
+                db_query(sql)
         else:
             if setup_time > 0:
                 setup_time -= 1
                 acc_setup_time += 1
-                sql = 'update manufacturing_line set setup_time=%s,acc_setup_time=%s,status="SETUP" where id=%s' % (
-                    setup_time, acc_setup_time, line_id)
-                db_query(sql)
+                if status != 'SETUP':
+                    sql = 'update manufacturing_line set setup_time=%s,acc_setup_time=%s,status="SETUP" where id=%s' % (
+                        setup_time, acc_setup_time, line_id)
+                    db_query(sql)
+                    status = 'SETUP'
+                else:
+                    sql = 'update manufacturing_line set setup_time=%s,acc_setup_time=%s where id=%s' % (
+                        setup_time, acc_setup_time, line_id)
+                    db_query(sql)
             else:
                 if temp_time < cycle_time:
                     run_time += 1
                     acc_run_time += 1
-                    sql = 'update manufacturing_line set run_time=%s,acc_run_time=%s,status="RUNNING",remark="",location="" where id=%s' % (
-                        run_time, acc_run_time, line_id)
-                    db_query(sql)
+                    if status != 'RUNNING':
+                        sql = 'update manufacturing_line set run_time=%s,acc_run_time=%s,status="RUNNING",remark="",location="" where id=%s' % (
+                            run_time, acc_run_time, line_id)
+                        db_query(sql)
+                        status = 'RUNNING'
+                    else:
+                        sql = 'update manufacturing_line set run_time=%s,acc_run_time=%s,remark="",location="" where id=%s' % (
+                            run_time, acc_run_time, line_id)
+                        db_query(sql)
                 elif temp_time >= cycle_time:
                     down_time += 1
                     acc_down_time += 1
                     # sql='update manufacturing_line set down_time=%s,status="BREAKDOWN",remark="" where id=%s'%(down_time,line_id)
                     # db_query(sql)
                     if (temp_time - cycle_time) < small_stop_time:
-                        sql = 'update manufacturing_line set down_time=%s,acc_down_time=%s,status="SMALL STOP",remark="" where id=%s' % (
-                            down_time, acc_down_time, line_id)
-                        db_query(sql)
+                        if status != 'SMALL STOP':
+                            sql = 'update manufacturing_line set down_time=%s,acc_down_time=%s,status="SMALL STOP",remark="" where id=%s' % (
+                                down_time, acc_down_time, line_id)
+                            db_query(sql)
+                            status = 'SMALL STOP'
+                        else:
+                            sql = 'update manufacturing_line set down_time=%s,acc_down_time=%s,remark="" where id=%s' % (
+                                down_time, acc_down_time, line_id)
+                            db_query(sql)
                     elif (temp_time - cycle_time) >= small_stop_time:
                         # tinggal ganti breakdown ke Down Time
-                        sql = 'update manufacturing_line set down_time=%s,acc_down_time=%s,status="DOWN TIME",remark="" where id=%s' % (
-                            down_time, acc_down_time, line_id)
-                        db_query(sql)
+                        if status != 'DOWN TIME':
+                            sql = 'update manufacturing_line set down_time=%s,acc_down_time=%s,status="DOWN TIME",remark="" where id=%s' % (
+                                down_time, acc_down_time, line_id)
+                            db_query(sql)
+                            status = 'DOWN TIME'
+                        else:
+                            sql = 'update manufacturing_line set down_time=%s,acc_down_time=%s,remark="" where id=%s' % (
+                                down_time, acc_down_time, line_id)
+                            db_query(sql)
                 temp_time += 1
                 sql = 'update manufacturing_line set temp_time=%s where id=%s' % (temp_time, line_id)
                 db_query(sql)
@@ -88,9 +119,15 @@ def line_calculation(id):
                 acc_item_counter = delta_item_counter + acc_item_counter
                 acc_cycle_time = (cycle_time * delta_item_counter) + acc_cycle_time
             prev_item_counter = item_counter
-            sql = 'update manufacturing_line set temp_time=%s,prev_item_counter=%s,acc_item_counter=%s,acc_cycle_time=%s,standby_time=0,setup_time=0,status="RUNNING" where id=%s' % (
-                temp_time, prev_item_counter, acc_item_counter, acc_cycle_time, line_id)
-            db_query(sql)
+            if status != 'RUNNING':
+                sql = 'update manufacturing_line set temp_time=%s,prev_item_counter=%s,acc_item_counter=%s,acc_cycle_time=%s,standby_time=0,setup_time=0,status="RUNNING" where id=%s' % (
+                    temp_time, prev_item_counter, acc_item_counter, acc_cycle_time, line_id)
+                db_query(sql)
+                status = 'RUNNING'
+            else:
+                sql = 'update manufacturing_line set temp_time=%s,prev_item_counter=%s,acc_item_counter=%s,acc_cycle_time=%s,standby_time=0,setup_time=0 where id=%s' % (
+                    temp_time, prev_item_counter, acc_item_counter, acc_cycle_time, line_id)
+                db_query(sql)
         if ng_count != prev_ng_count:
             delta_ng_count = ng_count - prev_ng_count
             if ng_count >= prev_ng_count:
@@ -100,14 +137,16 @@ def line_calculation(id):
                 prev_ng_count, acc_ng_count, line_id)
             db_query(sql)
     elif status == 'BREAKDOWN':
+        # why status=breakdown?
         down_time += 1
         acc_down_time += 1
-        sql = 'update manufacturing_line set down_time=%s,acc_down_time=%s,status="BREAKDOWN",remark="" where id=%s' % (
+        sql = 'update manufacturing_line set down_time=%s,acc_down_time=%s,remark="" where id=%s' % (
             down_time, acc_down_time, line_id)
         db_query(sql)
-    else:
-        sql = 'update manufacturing_line set status="STOP" where id=%s' % line_id
-        db_query(sql)
+    # disabled for status stop
+    # else:
+    #     sql = 'update manufacturing_line set status="STOP" where id=%s' % line_id
+    #     db_query(sql)
     availability = round((run_time * 100 / (run_time + down_time)) if (run_time + down_time) != 0 else 0, 2)
     # availability_24h = round((acc_run_time * 100 / 86400), 2)
     availability_24h = round(((86400 - acc_down_time) * 100 / 86400), 2)
@@ -117,6 +156,11 @@ def line_calculation(id):
     quality = round(((item_counter - ng_count) * 100 / item_counter) if item_counter != 0 else 0, 2)
     quality_24h = round(
         ((acc_item_counter - acc_ng_count) * 100 / acc_item_counter) if acc_item_counter != 0 else 0, 2)
+    # avoid minus
+    if quality < 0:
+        quality = 0
+    if quality_24h < 0:
+        quality_24h = 0
     progress = round(((item_counter) * 100 / target) if target != 0 else 0, 2)
     sql = 'update manufacturing_line set performance=%s,performance_24h=%s,availability=%s,availability_24h=%s,quality=%s,quality_24h=%s,progress=%s where id=%s' % (
         performance, performance_24h, availability, availability_24h, quality, quality_24h, progress, line_id)
@@ -312,7 +356,7 @@ def reset_oee_24h():
 
 
 try:
-    # db_connect('dbdemo.colinn.id','oee4','admin','adminiot',3307)
+    # db_connect('172.17.0.1','oee4','admin','adminiot',33069)
     # db_connect('localhost','oee4','root','iotdb123')
     db_connect('localhost', 'oee4', 'admin', 'adminiot')
     previousTime = 0
