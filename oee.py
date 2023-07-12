@@ -152,7 +152,7 @@ def line_calculation(id):
     availability_24h = round(((86400 - acc_down_time) * 100 / 86400), 2)
     # need acc_down_time
     performance = round(((cycle_time * item_counter) * 100 / (run_time + down_time)) if run_time != 0 else 0, 2)
-    performance_24h = round((acc_cycle_time * 100 / 86400) if run_time != 0 else 0, 2)
+    performance_24h = round(acc_cycle_time * 100 / 86400, 2)
     quality = round(((item_counter - ng_count) * 100 / item_counter) if item_counter != 0 else 0, 2)
     quality_24h = round(
         ((acc_item_counter - acc_ng_count) * 100 / acc_item_counter) if acc_item_counter != 0 else 0, 2)
