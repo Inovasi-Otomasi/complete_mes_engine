@@ -356,9 +356,9 @@ def reset_oee_24h():
 
 
 try:
-    # db_connect('172.17.0.1','oee4','admin','adminiot',33069)
+    db_connect('172.17.0.1', 'oee4', 'admin', 'adminiot', 33069)
     # db_connect('localhost','oee4','root','iotdb123')
-    db_connect('localhost', 'oee4', 'admin', 'adminiot')
+    # db_connect('localhost', 'oee4', 'admin', 'adminiot')
     previousTime = 0
     eventInterval = 1000
     schedule.every().day.at("00:00").do(reset_oee_24h)
