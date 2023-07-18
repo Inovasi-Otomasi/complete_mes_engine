@@ -371,6 +371,9 @@ try:
                 schedule.run_pending()
                 currentTime = millis()
                 if currentTime - previousTime >= eventInterval:
+                    print('=============')
+                    print('loop time: %s' % (currentTime - previousTime))
+                    print('=============')
                     oee()
                     previousTime = currentTime
                 time.sleep(1 / 1000)
