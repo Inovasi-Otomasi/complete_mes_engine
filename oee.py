@@ -2,13 +2,23 @@ import time
 import schedule
 from db_func import *
 import json
+from datetime import datetime, timedelta
 
 
 def millis():
     return int(time.time() * 1000)
 
 
+def passed_midnight(delta=10):
+    time_now = datetime.now()
+    time_ago = time_now - timedelta(seconds=delta)
+    return time_now.date() != time_ago.date()
+
+
 def line_calculation(id):
+    # print(passed_midnight())
+    # if passed_midnight():
+    #     reset_oee_24h()
     row = db_fetchone('select * from manufacturing_line where id=%s' % id)
     line_id = row['id']
     line_name = row['line_name']
@@ -375,6 +385,9 @@ try:
                     print('loop time: %s' % (currentTime - previousTime))
                     print('=============')
                     oee()
+                    # check if passed midnight then reset oee24h
+                    if passed_midnight():
+                        reset_oee_24h()
                     previousTime = currentTime
                 time.sleep(1 / 1000)
             except KeyboardInterrupt:
