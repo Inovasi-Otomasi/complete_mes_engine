@@ -371,7 +371,7 @@ try:
     # db_connect('localhost', 'oee4', 'admin', 'adminiot')
     previousTime = 0
     eventInterval = 1000
-    schedule.every().day.at("00:00").do(reset_oee_24h)
+    # schedule.every().day.at("00:00").do(reset_oee_24h) #need correct timezone
     schedule.every().minute.at(":00").do(cronjob)
     # schedule.every(1).seconds.do(oee)
     # cronjob()
@@ -386,8 +386,8 @@ try:
                     print('=============')
                     oee()
                     # check if passed midnight then reset oee24h
-                    if passed_midnight():
-                        reset_oee_24h()
+                    # if passed_midnight(): #need correct timezone
+                    #     reset_oee_24h()
                     previousTime = currentTime
                 time.sleep(1 / 1000)
             except KeyboardInterrupt:
