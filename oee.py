@@ -54,6 +54,32 @@ def line_calculation(id):
     target = row['target']
     sku_code = row['sku_code']
     if status != 'STOP' and status != 'BREAKDOWN' and order_id != 0 and sku_code != 'None':
+        if item_counter != prev_item_counter:
+            temp_time = 0
+            delta_item_counter = item_counter - prev_item_counter
+            if item_counter >= prev_item_counter:
+                acc_item_counter = delta_item_counter + acc_item_counter
+                acc_cycle_time = (cycle_time * delta_item_counter) + acc_cycle_time
+            prev_item_counter = item_counter
+            if status != 'RUNNING':
+                sql = 'update manufacturing_line set temp_time=%s,prev_item_counter=%s,acc_item_counter=%s,acc_cycle_time=%s,standby_time=0,setup_time=0,status="RUNNING" where id=%s' % (
+                    temp_time, prev_item_counter, acc_item_counter, acc_cycle_time, line_id)
+                db_query(sql)
+                status = 'RUNNING'
+            else:
+                sql = 'update manufacturing_line set temp_time=%s,prev_item_counter=%s,acc_item_counter=%s,acc_cycle_time=%s,standby_time=0,setup_time=0 where id=%s' % (
+                    temp_time, prev_item_counter, acc_item_counter, acc_cycle_time, line_id)
+                db_query(sql)
+
+        if ng_count != prev_ng_count:
+            delta_ng_count = ng_count - prev_ng_count
+            if ng_count >= prev_ng_count:
+                acc_ng_count = delta_ng_count + acc_ng_count
+            prev_ng_count = ng_count
+            sql = 'update manufacturing_line set prev_NG_count=%s,acc_NG_count=%s where id=%s' % (
+                prev_ng_count, acc_ng_count, line_id)
+            db_query(sql)
+
         if standby_time > 0:
             standby_time -= 1
             acc_standby_time += 1
@@ -122,30 +148,7 @@ def line_calculation(id):
                 temp_time += 1
                 sql = 'update manufacturing_line set temp_time=%s where id=%s' % (temp_time, line_id)
                 db_query(sql)
-        if item_counter != prev_item_counter:
-            temp_time = 0
-            delta_item_counter = item_counter - prev_item_counter
-            if item_counter >= prev_item_counter:
-                acc_item_counter = delta_item_counter + acc_item_counter
-                acc_cycle_time = (cycle_time * delta_item_counter) + acc_cycle_time
-            prev_item_counter = item_counter
-            if status != 'RUNNING':
-                sql = 'update manufacturing_line set temp_time=%s,prev_item_counter=%s,acc_item_counter=%s,acc_cycle_time=%s,standby_time=0,setup_time=0,status="RUNNING" where id=%s' % (
-                    temp_time, prev_item_counter, acc_item_counter, acc_cycle_time, line_id)
-                db_query(sql)
-                status = 'RUNNING'
-            else:
-                sql = 'update manufacturing_line set temp_time=%s,prev_item_counter=%s,acc_item_counter=%s,acc_cycle_time=%s,standby_time=0,setup_time=0 where id=%s' % (
-                    temp_time, prev_item_counter, acc_item_counter, acc_cycle_time, line_id)
-                db_query(sql)
-        if ng_count != prev_ng_count:
-            delta_ng_count = ng_count - prev_ng_count
-            if ng_count >= prev_ng_count:
-                acc_ng_count = delta_ng_count + acc_ng_count
-            prev_ng_count = ng_count
-            sql = 'update manufacturing_line set prev_NG_count=%s,acc_NG_count=%s where id=%s' % (
-                prev_ng_count, acc_ng_count, line_id)
-            db_query(sql)
+
     elif status == 'BREAKDOWN':
         # why status=breakdown?
         down_time += 1
@@ -382,9 +385,9 @@ def reset_oee_24h():
 
 
 try:
-    # db_connect('172.17.0.1', 'oee4', 'admin', 'adminiot', 33069)
+    db_connect('172.17.0.1', 'oee4', 'admin', 'adminiot', 33069)
     # db_connect('localhost','oee4','root','iotdb123')
-    db_connect('localhost', 'oee4', 'root', '')
+    # db_connect('localhost', 'oee4', 'root', '')
     previousTime = 0
     eventInterval = 1000
     # schedule.every().day.at("00:00").do(reset_oee_24h) #need correct timezone
