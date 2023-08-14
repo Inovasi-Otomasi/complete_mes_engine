@@ -195,7 +195,8 @@ def line_calculation(id):
             delta_downtime = down_time - (small_stop_log['down_time'] - 1)
             print('calculating delta downtime')
             if small_stop_log:
-                sql = 'update log_oee set delta_down_time=%s where id=%s' % (delta_downtime, small_stop_log['id'])
+                sql = 'update log_oee set delta_down_time=%s, remark="" where id=%s' % (
+                    delta_downtime, small_stop_log['id'])
                 db_query(sql)
                 print('updating delta downtime')
             # selisih downtime
@@ -209,7 +210,8 @@ def line_calculation(id):
                 delta_downtime = down_time - small_stop_log['down_time']
             print('calculating delta downtime')
             if small_stop_log:
-                sql = 'update log_oee set delta_down_time=%s where id=%s' % (delta_downtime, small_stop_log['id'])
+                sql = 'update log_oee set delta_down_time=%s, remark="" where id=%s' % (
+                    delta_downtime, small_stop_log['id'])
                 db_query(sql)
                 print('updating delta downtime')
             # selisih downtime
@@ -221,7 +223,8 @@ def line_calculation(id):
             delta_downtime = down_time - (small_stop_log['down_time'] - 1)
             print('calculating delta downtime')
             if small_stop_log:
-                sql = 'update log_oee set delta_down_time=%s where id=%s' % (delta_downtime, small_stop_log['id'])
+                sql = 'update log_oee set delta_down_time=%s, remark="" where id=%s' % (
+                    delta_downtime, small_stop_log['id'])
                 db_query(sql)
                 print('updating delta downtime')
             # selisih downtime
@@ -233,7 +236,8 @@ def line_calculation(id):
             delta_downtime = down_time - (small_stop_log['down_time'] - 1)
             print('calculating delta downtime')
             if small_stop_log:
-                sql = 'update log_oee set delta_down_time=%s where id=%s' % (delta_downtime, small_stop_log['id'])
+                sql = 'update log_oee set delta_down_time=%s, remark="" where id=%s' % (
+                    delta_downtime, small_stop_log['id'])
                 db_query(sql)
                 print('updating delta downtime')
                 sql = 'update manufacturing_line set down_time=0 where id=%s' % line_id
@@ -249,7 +253,8 @@ def line_calculation(id):
                 delta_downtime = down_time - small_stop_log['down_time']
             print('calculating delta downtime')
             if small_stop_log:
-                sql = 'update log_oee set delta_down_time=%s where id=%s' % (delta_downtime, small_stop_log['id'])
+                sql = 'update log_oee set delta_down_time=%s, remark="" where id=%s' % (
+                    delta_downtime, small_stop_log['id'])
                 db_query(sql)
                 print('updating delta downtime')
                 sql = 'update manufacturing_line set down_time=0 where id=%s' % line_id
@@ -263,7 +268,8 @@ def line_calculation(id):
             delta_downtime = down_time - (small_stop_log['down_time'] - 1)
             print('calculating delta downtime')
             if small_stop_log:
-                sql = 'update log_oee set delta_down_time=%s where id=%s' % (delta_downtime, small_stop_log['id'])
+                sql = 'update log_oee set delta_down_time=%s, remark="" where id=%s' % (
+                    delta_downtime, small_stop_log['id'])
                 db_query(sql)
                 print('updating delta downtime')
             # selisih downtime
@@ -278,7 +284,8 @@ def line_calculation(id):
 
             print('calculating delta downtime')
             if small_stop_log:
-                sql = 'update log_oee set delta_down_time=%s where id=%s' % (delta_downtime, small_stop_log['id'])
+                sql = 'update log_oee set delta_down_time=%s, remark="" where id=%s' % (
+                    delta_downtime, small_stop_log['id'])
                 db_query(sql)
                 print('updating delta downtime')
             # selisih downtime
@@ -290,7 +297,8 @@ def line_calculation(id):
             delta_downtime = down_time - (small_stop_log['down_time'] - 1)
             print('calculating delta downtime')
             if small_stop_log:
-                sql = 'update log_oee set delta_down_time=%s where id=%s' % (delta_downtime, small_stop_log['id'])
+                sql = 'update log_oee set delta_down_time=%s, remark="" where id=%s' % (
+                    delta_downtime, small_stop_log['id'])
                 db_query(sql)
                 print('updating delta downtime')
                 sql = 'update manufacturing_line set down_time=0 where id=%s' % line_id
@@ -374,9 +382,9 @@ def reset_oee_24h():
 
 
 try:
-    db_connect('172.17.0.1', 'oee4', 'admin', 'adminiot', 33069)
+    # db_connect('172.17.0.1', 'oee4', 'admin', 'adminiot', 33069)
     # db_connect('localhost','oee4','root','iotdb123')
-    # db_connect('localhost', 'oee4', 'admin', 'adminiot')
+    db_connect('localhost', 'oee4', 'root', '')
     previousTime = 0
     eventInterval = 1000
     # schedule.every().day.at("00:00").do(reset_oee_24h) #need correct timezone
