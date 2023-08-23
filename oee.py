@@ -56,6 +56,8 @@ def line_calculation(id):
     if status != 'STOP' and status != 'BREAKDOWN' and order_id != 0 and sku_code != 'None':
         if item_counter != prev_item_counter:
             temp_time = 0
+            standby_time = 0
+            setup_time = 0
             delta_item_counter = item_counter - prev_item_counter
             if item_counter >= prev_item_counter:
                 acc_item_counter = delta_item_counter + acc_item_counter
