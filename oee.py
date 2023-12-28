@@ -16,7 +16,7 @@ def passed_midnight(delta=10):
 
 
 def get_cartoning_qty():
-    row = db_fetchone('select * from manufacturing_line where line_name="Cartoning"')
+    row = db_fetchone('select * from manufacturing_line where line_name="Cartooning"')
     return row['item_counter']
 
 
@@ -43,6 +43,7 @@ def line_calculation(id):
     run_time = row['run_time']
     down_time = row['down_time']
     small_stop_sum = row['small_stop_sum']
+    small_stop_temp = row['small_stop_temp']
     setup_time_sum = row['setup_time_sum']
     standby_time = row['standby_time']
     ng_count = row['NG_count']
@@ -120,15 +121,17 @@ def line_calculation(id):
                 if temp_time < cycle_time:
                     run_time += 1
                     acc_run_time += 1
+                    small_stop_sum += small_stop_temp
+                    small_stop_temp = 0
                     remark = ''
                     if status != 'RUNNING':
-                        sql = 'update manufacturing_line set run_time=%s,acc_run_time=%s,status="RUNNING",remark="",location="" where id=%s' % (
-                            run_time, acc_run_time, line_id)
+                        sql = 'update manufacturing_line set small_stop_sum=%s,small_stop_temp=%s,run_time=%s,acc_run_time=%s,status="RUNNING",remark="",location="" where id=%s' % (
+                            small_stop_sum, small_stop_temp, run_time, acc_run_time, line_id)
                         db_query(sql)
                         status = 'RUNNING'
                     else:
-                        sql = 'update manufacturing_line set run_time=%s,acc_run_time=%s,remark="",location="" where id=%s' % (
-                            run_time, acc_run_time, line_id)
+                        sql = 'update manufacturing_line set small_stop_sum=%s,small_stop_temp=%s,run_time=%s,acc_run_time=%s,remark="",location="" where id=%s' % (
+                            small_stop_sum, small_stop_temp, run_time, acc_run_time, line_id)
                         db_query(sql)
                 elif temp_time >= cycle_time:
                     # acc_down_time += 1
@@ -136,28 +139,30 @@ def line_calculation(id):
                     # sql='update manufacturing_line set down_time=%s,status="BREAKDOWN",remark="" where id=%s'%(down_time,line_id)
                     # db_query(sql)
                     if (temp_time - cycle_time) < small_stop_time:
-                        small_stop_sum += 1
+                        small_stop_temp += 1
                         if status != 'SMALL STOP':
-                            sql = 'update manufacturing_line set small_stop_sum=%s,acc_down_time=%s,status="SMALL STOP",remark="" where id=%s' % (
-                                small_stop_sum, acc_down_time, line_id)
+                            sql = 'update manufacturing_line set small_stop_temp=%s,acc_down_time=%s,status="SMALL STOP",remark="" where id=%s' % (
+                                small_stop_temp, acc_down_time, line_id)
                             db_query(sql)
                             status = 'SMALL STOP'
                         else:
-                            sql = 'update manufacturing_line set small_stop_sum=%s,acc_down_time=%s,remark="" where id=%s' % (
-                                small_stop_sum, acc_down_time, line_id)
+                            sql = 'update manufacturing_line set small_stop_temp=%s,acc_down_time=%s,remark="" where id=%s' % (
+                                small_stop_temp, acc_down_time, line_id)
                             db_query(sql)
                     elif (temp_time - cycle_time) >= small_stop_time:
                         down_time += 1
+                        down_time += small_stop_temp
                         acc_down_time += 1
+                        small_stop_temp = 0
                         # tinggal ganti breakdown ke Down Time
                         if status != 'DOWN TIME':
-                            sql = 'update manufacturing_line set down_time=%s,acc_down_time=%s,status="DOWN TIME",remark="" where id=%s' % (
-                                down_time, acc_down_time, line_id)
+                            sql = 'update manufacturing_line set small_stop_temp=%s,down_time=%s,acc_down_time=%s,status="DOWN TIME",remark="" where id=%s' % (
+                                small_stop_temp, down_time, acc_down_time, line_id)
                             db_query(sql)
                             status = 'DOWN TIME'
                         else:
-                            sql = 'update manufacturing_line set down_time=%s,acc_down_time=%s,remark="" where id=%s' % (
-                                down_time, acc_down_time, line_id)
+                            sql = 'update manufacturing_line set small_stop_temp=%s,down_time=%s,acc_down_time=%s,remark="" where id=%s' % (
+                                small_stop_temp, down_time, acc_down_time, line_id)
                             db_query(sql)
                 temp_time += 1
                 sql = 'update manufacturing_line set temp_time=%s where id=%s' % (temp_time, line_id)
@@ -184,7 +189,9 @@ def line_calculation(id):
     # need acc_down_time
     # performance = round(((cycle_time * item_counter) * 100 / (run_time + down_time)) if run_time != 0 else 0, 2) #old before cr
     performance = round(
-        ((cycle_time * item_counter) * 100 / (run_time + small_stop_sum)) if (run_time + small_stop_sum) != 0 else 0, 2)
+        ((cycle_time * get_cartoning_qty()) * 100 / (run_time + small_stop_sum)) if (
+                                                                                                run_time + small_stop_sum) != 0 else 0,
+        2)
     performance_24h = round(acc_cycle_time * 100 / 86400, 2)
     # quality = round(((item_counter - ng_count) * 100 / item_counter) if item_counter != 0 else 0, 2) #old before cr
     quality = round((get_cartoning_qty() * 100 / item_counter) if item_counter != 0 else 0, 2)
@@ -231,7 +238,7 @@ def line_calculation(id):
             # get latest small stop from this line
             small_stop_log = db_fetchone(
                 'select * from log_oee where line_name="%s" and status="DOWN TIME" and (prev_status="SMALL STOP" or prev_status="STOP" or prev_status="RUNNING" or prev_status="SETUP" or prev_status="STANDBY") order by id desc limit 1' % line_name)
-            delta_downtime = down_time - (small_stop_log['down_time'] - 1)
+            delta_downtime = down_time - (small_stop_log['down_time'] - 1) + small_stop_time
             print(down_time)
             print(small_stop_log['down_time'])
             # if small_stop_log['prev_status'] == 'SMALL STOP':
@@ -281,7 +288,7 @@ def line_calculation(id):
             # get latest small stop from this line
             small_stop_log = db_fetchone(
                 'select * from log_oee where line_name="%s" and status="DOWN TIME" and (prev_status="SMALL STOP" or prev_status="STOP" or prev_status="RUNNING" or prev_status="SETUP" or prev_status="STANDBY") order by id desc limit 1' % line_name)
-            delta_downtime = down_time - (small_stop_log['down_time'] - 1)
+            delta_downtime = down_time - (small_stop_log['down_time'] - 1) + small_stop_time
             # if small_stop_log['prev_status'] == 'SMALL STOP':
             #     delta_downtime = down_time - small_stop_log['down_time']
             # change due to cr
@@ -314,7 +321,7 @@ def line_calculation(id):
             # get latest small stop from this line
             small_stop_log = db_fetchone(
                 'select * from log_oee where line_name="%s" and status="DOWN TIME" and (prev_status="SMALL STOP" or prev_status="STOP" or prev_status="RUNNING" or prev_status="SETUP" or prev_status="STANDBY") order by id desc limit 1' % line_name)
-            delta_downtime = down_time - (small_stop_log['down_time'] - 1)
+            delta_downtime = down_time - (small_stop_log['down_time'] - 1) + small_stop_time
             # if small_stop_log['prev_status'] == 'SMALL STOP':
             #     delta_downtime = down_time - small_stop_log['down_time']
             # change due to cr
@@ -420,9 +427,9 @@ def reset_oee_24h():
 
 
 try:
-    db_connect('172.17.0.1', 'oee4', 'admin', 'adminiot', 33069)
+    # db_connect('172.17.0.1', 'oee4', 'admin', 'adminiot', 33069)
     # db_connect('localhost','oee4','root','iotdb123')
-    # db_connect('localhost', 'oee4', 'root', '')
+    db_connect('localhost', 'oee4', 'root', '')
     previousTime = 0
     eventInterval = 1000
     # schedule.every().day.at("00:00").do(reset_oee_24h) #need correct timezone
