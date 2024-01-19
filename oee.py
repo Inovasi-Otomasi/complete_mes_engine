@@ -153,6 +153,7 @@ def line_calculation(id):
                         down_time += 1
                         down_time += small_stop_temp
                         acc_down_time += 1
+                        acc_down_time += small_stop_temp
                         small_stop_temp = 0
                         # tinggal ganti breakdown ke Down Time
                         if status != 'DOWN TIME':
@@ -190,7 +191,7 @@ def line_calculation(id):
     # performance = round(((cycle_time * item_counter) * 100 / (run_time + down_time)) if run_time != 0 else 0, 2) #old before cr
     performance = round(
         ((cycle_time * get_cartoning_qty()) * 100 / (run_time + small_stop_sum)) if (
-                                                                                                run_time + small_stop_sum) != 0 else 0,
+                                                                                            run_time + small_stop_sum) != 0 else 0,
         2)
     performance_24h = round(acc_cycle_time * 100 / 86400, 2)
     # quality = round(((item_counter - ng_count) * 100 / item_counter) if item_counter != 0 else 0, 2) #old before cr
@@ -238,7 +239,10 @@ def line_calculation(id):
             # get latest small stop from this line
             small_stop_log = db_fetchone(
                 'select * from log_oee where line_name="%s" and status="DOWN TIME" and (prev_status="SMALL STOP" or prev_status="STOP" or prev_status="RUNNING" or prev_status="SETUP" or prev_status="STANDBY") order by id desc limit 1' % line_name)
-            delta_downtime = down_time - (small_stop_log['down_time'] - 1) + small_stop_time
+            delta_downtime = down_time - (small_stop_log['down_time'] - 1)
+            if small_stop_log['prev_status'] == 'SMALL STOP':
+                delta_downtime += small_stop_time
+            # overlooked fixed
             print(down_time)
             print(small_stop_log['down_time'])
             # if small_stop_log['prev_status'] == 'SMALL STOP':
@@ -288,7 +292,9 @@ def line_calculation(id):
             # get latest small stop from this line
             small_stop_log = db_fetchone(
                 'select * from log_oee where line_name="%s" and status="DOWN TIME" and (prev_status="SMALL STOP" or prev_status="STOP" or prev_status="RUNNING" or prev_status="SETUP" or prev_status="STANDBY") order by id desc limit 1' % line_name)
-            delta_downtime = down_time - (small_stop_log['down_time'] - 1) + small_stop_time
+            delta_downtime = down_time - (small_stop_log['down_time'] - 1)
+            if small_stop_log['prev_status'] == 'SMALL STOP':
+                delta_downtime += small_stop_time
             # if small_stop_log['prev_status'] == 'SMALL STOP':
             #     delta_downtime = down_time - small_stop_log['down_time']
             # change due to cr
@@ -321,7 +327,9 @@ def line_calculation(id):
             # get latest small stop from this line
             small_stop_log = db_fetchone(
                 'select * from log_oee where line_name="%s" and status="DOWN TIME" and (prev_status="SMALL STOP" or prev_status="STOP" or prev_status="RUNNING" or prev_status="SETUP" or prev_status="STANDBY") order by id desc limit 1' % line_name)
-            delta_downtime = down_time - (small_stop_log['down_time'] - 1) + small_stop_time
+            delta_downtime = down_time - (small_stop_log['down_time'] - 1)
+            if small_stop_log['prev_status'] == 'SMALL STOP':
+                delta_downtime += small_stop_time
             # if small_stop_log['prev_status'] == 'SMALL STOP':
             #     delta_downtime = down_time - small_stop_log['down_time']
             # change due to cr
@@ -427,9 +435,9 @@ def reset_oee_24h():
 
 
 try:
-    # db_connect('172.17.0.1', 'oee4', 'admin', 'adminiot', 33069)
+    db_connect('172.17.0.1', 'oee4', 'admin', 'adminiot', 33069)
     # db_connect('localhost','oee4','root','iotdb123')
-    db_connect('localhost', 'oee4', 'root', '')
+    # db_connect('localhost', 'oee4', 'root', '')
     previousTime = 0
     eventInterval = 1000
     # schedule.every().day.at("00:00").do(reset_oee_24h) #need correct timezone
